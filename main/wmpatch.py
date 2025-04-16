@@ -46,6 +46,7 @@ class GTWatermark():
         return gt_patch, watermarking_mask
 
     def inject_watermark(self, latents): 
+        latents_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))
         if self.watermarking_mask.shape[-2:] != latents_fft.shape[-2:]:
             # Resize watermarking_mask and gt_patch to match latents_fft spatial dimensions
             mask_resized = torch.nn.functional.interpolate(
@@ -58,7 +59,7 @@ class GTWatermark():
         else:
             mask_resized = self.watermarking_mask
             patch_resized = self.gt_patch
-        latents_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))
+        
         # latents_fft[self.watermarking_mask] = self.gt_patch[self.watermarking_mask].clone()
         latents_fft = latents_fft * (~mask_resized) + patch_resized * mask_resized
 
