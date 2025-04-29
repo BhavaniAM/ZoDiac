@@ -164,7 +164,8 @@ class GTWatermark():
         latents_fft_masked = latents_fft[mask_resized].flatten()
     
         # Concatenate real and imaginary parts
-        target_patch_concat = torch.cat([target_patch.real, target_patch.imag])
+        # target_patch_concat = torch.cat([target_patch.real, target_patch.imag])
+        target_patch_concat = target_patch
         latents_fft_concat = torch.cat([latents_fft_masked.real, latents_fft_masked.imag])
     
         # Compute chi-square statistics
