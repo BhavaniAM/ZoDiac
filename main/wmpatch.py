@@ -126,18 +126,55 @@ class GTWatermark():
         l1_metric = self.eval_watermark(latents)
         return abs(0.5 - norm.cdf(l1_metric, self.mu, self.sigma))*2
     
-    def tree_ring_p_value(self, latents):
-        target_patch = self.gt_patch[self.watermarking_mask].flatten()
-        target_patch = torch.concatenate([target_patch.real, target_patch.imag])
+    # def tree_ring_p_value(self, latents):
+    #     target_patch = self.gt_patch[self.watermarking_mask].flatten()
+    #     target_patch = torch.concatenate([target_patch.real, target_patch.imag])
 
-        reversed_latents_w_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))[self.watermarking_mask].flatten()
-        reversed_latents_w_fft = torch.concatenate([reversed_latents_w_fft.real, reversed_latents_w_fft.imag])
+    #     reversed_latents_w_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))[self.watermarking_mask].flatten()
+    #     reversed_latents_w_fft = torch.concatenate([reversed_latents_w_fft.real, reversed_latents_w_fft.imag])
         
-        sigma_w = reversed_latents_w_fft.std()
-        lambda_w = (target_patch ** 2 / sigma_w ** 2).sum().item()
-        x_w = (((reversed_latents_w_fft - target_patch) / sigma_w) ** 2).sum().item()
-        p_w = scipy.stats.ncx2.cdf(x=x_w, df=len(target_patch), nc=lambda_w)
+    #     sigma_w = reversed_latents_w_fft.std()
+    #     lambda_w = (target_patch ** 2 / sigma_w ** 2).sum().item()
+    #     x_w = (((reversed_latents_w_fft - target_patch) / sigma_w) ** 2).sum().item()
+    #     p_w = scipy.stats.ncx2.cdf(x=x_w, df=len(target_patch), nc=lambda_w)
+    #     return p_w
+
+    def tree_ring_p_value(self, latents):
+        # Resize mask if needed
+        if self.watermarking_mask.shape[-2:] != latents.shape[-2:]:
+            mask_resized = torch.nn.functional.interpolate(
+                self.watermarking_mask.float(), size = latents.shape[-2:], mode = 'bilinear'
+            ).bool()
+        else:
+            mask_resized = self.watermarking_mask
+    
+        # Resize patch if needed
+        if self.gt_patch.shape[-2:] != latents.shape[-2:]:
+            patch_resized = torch.nn.functional.interpolate(
+                self.gt_patch.real, size = latents.shape[-2:], mode = 'bilinear'
+            )
+        else:
+            patch_resized = self.gt_patch.real
+
+        # Compute FFT of latents
+        latents_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))
+    
+        # Index FFT and patch using the resized mask
+        target_patch = patch_resized[mask_resized].flatten()
+        latents_fft_masked = latents_fft[mask_resized].flatten()
+    
+        # Concatenate real and imaginary parts
+        target_patch_concat = torch.cat([target_patch.real, target_patch.imag])
+        latents_fft_concat = torch.cat([latents_fft_masked.real, latents_fft_masked.imag])
+    
+        # Compute chi-square statistics
+        sigma_w = latents_fft_concat.std()
+        lambda_w = (target_patch_concat ** 2 / sigma_w ** 2).sum().item()
+        x_w = (((latents_fft_concat - target_patch_concat) / sigma_w) ** 2).sum().item()
+        p_w = scipy.stats.ncx2.cdf(x=x_w, df=len(target_patch_concat), nc=lambda_w)
+    
         return p_w
+
         
 
 class GTWatermarkMulti(GTWatermark):
