@@ -23,7 +23,8 @@ class LossProvider(nn.Module):
 
     def __call__(self, pred_img_tensor, gt_img_tensor, init_latents, wm_pipe):
         init_latents_fft = torch.fft.fftshift(torch.fft.fft2(init_latents), dim=(-1, -2))
-        lossW = self.loss_w(init_latents_fft[wm_pipe.watermarking_mask], wm_pipe.gt_patch[wm_pipe.watermarking_mask])*self.loss_weights[3]
+        # lossW = self.loss_w(init_latents_fft[wm_pipe.watermarking_mask], wm_pipe.gt_patch[wm_pipe.watermarking_mask])*self.loss_weights[3]
+        lossW = self.loss_w(init_latents_fft[wm_pipe.mask_resized], wm_pipe.patch_resized[wm_pipe.mask_resized]) * self.loss_weights[3]
         lossI = self.loss_img(pred_img_tensor, gt_img_tensor)*self.loss_weights[0]
         lossP = self.loss_per(pred_img_tensor, gt_img_tensor)*self.loss_weights[1]
         lossS = (1-self.loss_ssim(pred_img_tensor, gt_img_tensor))*self.loss_weights[2]
