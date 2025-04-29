@@ -83,11 +83,13 @@ class GTWatermark():
             real_patch = torch.nn.functional.interpolate(self.gt_patch.real, size = latents.shape[-2:], mode = 'bilinear')
             imag_patch = torch.nn.functional.interpolate(self.gt_patch.imag, size = latents.shape[-2:], mode = 'bilinear')
             patch_resized = torch.complex(real_patch, imag_patch)
-
         else:
             mask_resized = self.watermarking_mask
             patch_resized = self.gt_patch
-    
+
+        self.mask_resized = mask_resized  # Save resized mask
+        self.patch_resized = patch_resized  # Save resized patch
+
         # FFT on the latents
         latents_fft = torch.fft.fftshift(torch.fft.fft2(latents), dim=(-1, -2))
     
